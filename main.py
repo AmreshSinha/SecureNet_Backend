@@ -4,6 +4,15 @@ from typing import List
 import models
 from database import engine, SessionLocal
 from sqlalchemy.orm import Session
+import shutil
+from dotenv import load_dotenv
+import os
+import requests
+import hashlib
+import time
+from requests_toolbelt.multipart.encoder import MultipartEncoder
+
+load_dotenv()
 
 app = FastAPI()
 models.Base.metadata.create_all(bind=engine)
