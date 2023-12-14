@@ -7,3 +7,4 @@ python-dotenv
 autopep8
 requests
 python-multipart
+requests-toolbelt
