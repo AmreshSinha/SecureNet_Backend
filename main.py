@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile
+from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Response
 from pydantic import BaseModel
 from typing import List
 import models
@@ -213,5 +213,32 @@ async def report_json(hash: str):
             headers={"Authorization": os.environ['MOBSF_API_KEY']}
         )
         return response.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/static/report_pdf")
+async def report_pdf(hash: str):
+    """Report PDF route (GET) for the APK file
+
+    Args:
+        hash (str): MD5 hash of the APK file
+
+    Raises:
+        HTTPException: _description_
+
+    Returns:
+        _type_: _description_
+
+    Example:
+        Command: `curl http://<api-server-endpoint>/pdf?hash=5f06b231c5e9b1703b088ad87050c89f`
+
+        Response: PDF file
+    """
+    try:
+        query = f"{os.environ['MOBSF_ENDPOINT']}/pdf/{hash}/"
+        print(query)
+        response = requests.get(query)
+        return Response(content=response.content, media_type="application/pdf")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
