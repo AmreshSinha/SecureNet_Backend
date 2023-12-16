@@ -15,6 +15,9 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 load_dotenv()
 
 app = FastAPI()
+
+fcmToken=""
+
 models.Base.metadata.create_all(bind=engine)
 
 
@@ -242,3 +245,21 @@ async def report_pdf(hash: str):
         return Response(content=response.content, media_type="application/pdf")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+    
+    
+@app.post("/fcm")
+async def report_pdf(token: str):
+    global fcmToken
+    fcmToken=token
+    return {"success" : True}
+
+@app.post("/fcm/notif")
+def send_notif(title: str, body: str):
+    global fcmToken
+    response = requests.post(
+        "https://securenet-notif.onrender.com/notif",
+        data={'fcmToken': fcmToken,'title': title,'body': body}
+    )
+    print(response.json())
+    return response.json()
