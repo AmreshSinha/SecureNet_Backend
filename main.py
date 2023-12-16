@@ -262,9 +262,9 @@ async def send_notif(request: Request):
     title = data.get("title")
     body = data.get("body")
     global fcmToken
-    return {title,body,fcmToken}
-    # response = requests.post(
-    #     "https://securenet-notif.onrender.com/notif",
-    #     data={'fcmToken': fcmToken,'title': title,'body': body}
-    # )
-    # return response.json()
+    response = requests.post(
+        "https://securenet-notif.onrender.com/notif",
+        data={'fcmToken': fcmToken,'title': title,'body': body},
+        headers={"Content-Type": "application/json"}
+    )
+    return response.json()
