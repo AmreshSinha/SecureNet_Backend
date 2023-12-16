@@ -256,12 +256,10 @@ async def report_pdf(request: Request):
     fcmToken=token
     return {"success" : True}
 
-@app.post("/fcm/notif")
-async def send_notif(request: Request):
-    data = await request.json()
-    title = data.get("title")
-    body = data.get("body")
+async def send_notif(title: str,body: str):
     global fcmToken
+    if fcmToken=="":
+        return {"message" : "set FCM TOKEN first"}
     response = requests.post(
         "https://securenet-notif.onrender.com/notif",
         json={'fcmToken': fcmToken,'title': title,'body': body},
