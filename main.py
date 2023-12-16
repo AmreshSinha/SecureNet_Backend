@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Response
+from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Response, Request
 from pydantic import BaseModel
 from typing import List
 import models
@@ -249,13 +249,18 @@ async def report_pdf(hash: str):
     
     
 @app.post("/fcm")
-async def report_pdf(token: str):
+async def report_pdf(request: Request):
+    data = await request.json()
+    token = data.get("token")
     global fcmToken
     fcmToken=token
     return {"success" : True}
 
 @app.post("/fcm/notif")
-def send_notif(title: str, body: str):
+async def send_notif(request: Request):
+    data = await request.json()
+    title = data.get("title")
+    body = data.get("body")
     global fcmToken
     response = requests.post(
         "https://securenet-notif.onrender.com/notif",
