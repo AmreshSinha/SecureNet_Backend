@@ -11,12 +11,15 @@ import requests
 import hashlib
 import time
 from requests_toolbelt.multipart.encoder import MultipartEncoder
+from ipdata_utils import ip_report
+import json
+from redis_utils import check_ip_report, add_ip_report, check_domain_report, add_domain_report
 
 load_dotenv()
 
 app = FastAPI()
 
-fcmToken=""
+fcmToken = ""
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -245,35 +248,58 @@ async def report_pdf(hash: str):
         return Response(content=response.content, media_type="application/pdf")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-    
-    
+
+
 @app.post("/fcm")
 async def report_pdf(request: Request):
     data = await request.json()
     token = data.get("token")
     global fcmToken
-    fcmToken=token
-    return {"success" : True}
+    fcmToken = token
+    return {"success": True}
 
-async def send_notif(title: str,body: str):
+
+async def send_notif(title: str, body: str):
     global fcmToken
-    if fcmToken=="":
-        return {"message" : "set FCM TOKEN first"}
+    if fcmToken == "":
+        return {"message": "set FCM TOKEN first"}
     response = requests.post(
         "https://securenet-notif.onrender.com/notif",
-        json={'fcmToken': fcmToken,'title': title,'body': body},
+        json={'fcmToken': fcmToken, 'title': title, 'body': body},
         headers={"Content-Type": "application/json"}
     )
     return response.json()
 
-# WIP
-# @app.post("/ipdom")
-# async def ip_or_domain_report(port: int, package: str, ip: str | None = None, domain: str | None = None):
-#     type = "ip"
-#     if ip:
-#         type = "ip"
-#     elif domain:
-#         type = "domain"
-#     else:
-#         raise HTTPException(status_code=500, detail="Incorrect Parameters Provided")
+
+@app.post("/ipdom")
+async def ip_or_domain_report(port: int, package: str, ip: str | None = None, domain: str | None = None):
+    # type = "ip"
+    if ip:
+        # type = "ip"
+        # Check if the IP is already present in the Redis cache
+        ip_report_redis = check_ip_report(ip)
+        if ip_report_redis:
+            print("IP Check: Cache Hit!")
+            return json.loads(ip_report_redis)
+        else:
+            print("IP Check: No Cache Found!")
+            # Fetch the IP report from ipdata.co
+            ip_report_data = json.dumps(ip_report(ip))
+            # Store the IP report in the Redis cache
+            add_ip_report(ip, port, package, ip_report_data)
+            return ip_report_data
+    elif domain:
+        # type = "domain"
+        # Check if the domain is already present in the Redis cache
+        domain_report_redis = check_domain_report(domain)
+        if domain_report_redis:
+            return json.loads(domain_report_redis)
+        else:
+            # Fetch the domain report from ipdata.co
+            domain_report_data = json.dumps(ip_report(domain))
+            # Store the domain report in the Redis cache
+            add_domain_report(domain, port, package, domain_report_data)
+            return domain_report_data
+    else:
+        raise HTTPException(
+            status_code=500, detail="Incorrect Parameters Provided")
