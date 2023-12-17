@@ -266,3 +266,14 @@ async def send_notif(title: str,body: str):
         headers={"Content-Type": "application/json"}
     )
     return response.json()
+
+# WIP
+# @app.post("/ipdom")
+# async def ip_or_domain_report(port: int, package: str, ip: str | None = None, domain: str | None = None):
+#     type = "ip"
+#     if ip:
+#         type = "ip"
+#     elif domain:
+#         type = "domain"
+#     else:
+#         raise HTTPException(status_code=500, detail="Incorrect Parameters Provided")
