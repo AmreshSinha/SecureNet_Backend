@@ -9,6 +9,7 @@ services:
     restart: always
     networks:
       - web
+      - db
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=web"
@@ -17,7 +18,6 @@ services:
     # volumes:
     #   - .:/app
     depends_on:
-      # - db
       - redis
     environment:
       - REDIS_HOST=redis
@@ -35,9 +35,12 @@ services:
     image: redis
     volumes:
       - ./redis_data:/var/lib/redis/data
+    networks:
+      - db
     ports:
       - "6379:6379"
 
 networks:
   web:
     external: true
+  db:
