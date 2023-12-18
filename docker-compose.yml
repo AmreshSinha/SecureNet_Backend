@@ -31,7 +31,7 @@ services:
   redis:
     image: redis
     volumes:
-      - redis_data:/var/lib/redis/data
+      - ./redis_data:/var/lib/redis/data
     ports:
       - "6379:6379"
 
