@@ -16,7 +16,11 @@ def spamhaus_token() -> str:
         response_json = response.json()
         token = response_json["token"]
         add_spamhaus_token(token)
-        return str(token, 'UTF-8')
+        try:
+            return str(token, 'UTF-8')
+        except:
+            return token
+        # return str(token, 'UTF-8')
 
 def domain_report(domain: str):
     token = spamhaus_token()
