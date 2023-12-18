@@ -9,7 +9,6 @@ services:
     restart: always
     networks:
       - web
-      - db
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=web"
@@ -31,8 +30,6 @@ services:
   #     - POSTGRES_DB=postgres
   redis:
     image: redis
-    networks:
-      - db
     volumes:
       - ./redis_data:/var/lib/redis/data
     ports:
