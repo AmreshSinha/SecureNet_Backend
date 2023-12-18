@@ -16,16 +16,24 @@ services:
       - "traefik.http.routers.securenet-secure.rule=Host(`securenet.photoai.pro`)"
     # volumes:
     #   - .:/app
-    # depends_on:
-    #   - db
+    depends_on:
+      # - db
+      - redis
   # db:
   #   image: postgres:13.3
   #   volumes:
   #     - postgres_data:/var/lib/postgresql/data/
-  #   environment:
+    environment:
+      - REDIS_HOST=redis
   #     - POSTGRES_USER=postgres
   #     - POSTGRES_PASSWORD=postgres
   #     - POSTGRES_DB=postgres
+  redis:
+    image: redis
+    volumes:
+      - redis_data:/var/lib/redis/data
+    ports:
+      - "6379:6379"
 
 networks:
   web:

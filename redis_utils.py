@@ -1,11 +1,14 @@
 import redis
 import json
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
-redis_client = redis.Redis(host='localhost', port='6379', db=0)
-auth_store = redis.Redis(host='localhost', port='6379', db=1)
+HOST = os.getenv("REDIS_HOST") if os.getenv("REDIS_HOST") else 'localhost'
+
+redis_client = redis.Redis(host=HOST, port='6379', db=0)
+auth_store = redis.Redis(host=HOST, port='6379', db=1)
 
 
 def check_spamhaus_token() -> str:
