@@ -14,6 +14,7 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 from ipdata_utils import ip_report
 import json
 from redis_utils import check_ip_report, add_ip_report, check_domain_report, add_domain_report
+from spamhaus_utils import domain_report
 
 load_dotenv()
 
@@ -272,7 +273,7 @@ async def send_notif(title: str, body: str):
 
 
 @app.post("/ipdom")
-async def ip_or_domain_report(port: int, package: str, ip: str | None = None, domain: str | None = None):
+async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None):
     # type = "ip"
     if ip:
         # type = "ip"
@@ -293,12 +294,14 @@ async def ip_or_domain_report(port: int, package: str, ip: str | None = None, do
         # Check if the domain is already present in the Redis cache
         domain_report_redis = check_domain_report(domain)
         if domain_report_redis:
+            print("Domain Check: Cache Hit!")
             return json.loads(domain_report_redis)
         else:
+            print("Domain Check: No Cache Found!")
             # Fetch the domain report from ipdata.co
-            domain_report_data = json.dumps(ip_report(domain))
+            domain_report_data = domain_report(domain)
             # Store the domain report in the Redis cache
-            add_domain_report(domain, port, package, domain_report_data)
+            add_domain_report(domain, package, json.dumps(domain_report_data))
             return domain_report_data
     else:
         raise HTTPException(
