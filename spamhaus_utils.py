@@ -33,4 +33,6 @@ def domain_report(domain: str):
         }
     )
     print("Domain Report", response.json())
-    return response.json()
+    response = response.json()
+    response['type'] = 'domain'
+    return response
