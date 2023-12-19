@@ -287,7 +287,7 @@ async def send_notif(title: str, body: str):
     return response.json()
 
 
-@app.post("/dynamic/ipdom")
+@app.get("/dynamic/ipdom")
 async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None, protocol: int | None = None):
     # type = "ip"
     if ip:
