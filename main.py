@@ -179,41 +179,41 @@ async def upload_apk(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/gemini/action")
-async def gemini(hash: str):
-    response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
-                                 data={
-                                     "hash": hash
-                                 },
-                                 headers={
-                                     "Authorization": os.environ['MOBSF_API_KEY']}
-                                 )
-    action_prompt = BASE_PROMPT_ACTION + response.json
-    genai.configure(api_key=GEMINI_API_KEY)
+# @app.get("/gemini/action")
+# async def gemini(hash: str):
+#     response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
+#                                  data={
+#                                      "hash": hash
+#                                  },
+#                                  headers={
+#                                      "Authorization": os.environ['MOBSF_API_KEY']}
+#                                  )
+#     action_prompt = BASE_PROMPT_ACTION + response.json
+#     genai.configure(api_key=GEMINI_API_KEY)
 
-    model = genai.GenerativeModel('gemini-pro')
+#     model = genai.GenerativeModel('gemini-pro')
 
-    response = model.generate_content(action_prompt)
+#     response = model.generate_content(action_prompt)
 
-    return response
+#     return response
 
-@app.get("/gemini/summary")
-async def gemini(hash: str):
-    response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
-                                 data={
-                                     "hash": hash
-                                 },
-                                 headers={
-                                     "Authorization": os.environ['MOBSF_API_KEY']}
-                                 )
-    summary_prompt = BASE_PROMPT_SUMMARY + response.json
-    genai.configure(api_key=GEMINI_API_KEY)
+# @app.get("/gemini/summary")
+# async def gemini(hash: str):
+#     response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
+#                                  data={
+#                                      "hash": hash
+#                                  },
+#                                  headers={
+#                                      "Authorization": os.environ['MOBSF_API_KEY']}
+#                                  )
+#     summary_prompt = BASE_PROMPT_SUMMARY + response.json
+#     genai.configure(api_key=GEMINI_API_KEY)
 
-    model = genai.GenerativeModel('gemini-pro')
+#     model = genai.GenerativeModel('gemini-pro')
 
-    response = model.generate_content(summary_prompt)
+#     response = model.generate_content(summary_prompt)
 
-    return response
+#     return response
 
 @app.get("/static/scorecard")
 async def scorecard(hash: str):
@@ -332,32 +332,32 @@ import pickle
 async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None, protocol: int | None = None):
     # type = "ip"
     if ip:
-        source_ip = "192.168.100.103"
+        # source_ip = "192.168.100.103"
 
-        in_data = []
+        # in_data = []
 
-        source_ip = source_ip.split('.')
-        source_ip = [in_data.append(float(i)) for i in source_ip]
+        # source_ip = source_ip.split('.')
+        # source_ip = [in_data.append(float(i)) for i in source_ip]
 
-        in_data.append(float(port))
+        # in_data.append(float(port))
 
-        des_ip = ip.split('.')
-        des_ip = [in_data.append(float(i)) for i in des_ip]
+        # des_ip = ip.split('.')
+        # des_ip = [in_data.append(float(i)) for i in des_ip]
 
-        in_data.append(float(port))
+        # in_data.append(float(port))
 
-        in_features = [0.000e+00, 0.000e+00, 3.000e+00, 1.800e+02, 0.000e+00, 0.000e+00, 1.000e+00, 1.000e+00]
+        # in_features = [0.000e+00, 0.000e+00, 3.000e+00, 1.800e+02, 0.000e+00, 0.000e+00, 1.000e+00, 1.000e+00]
 
-        [in_data.append(i) for i in in_features] 
+        # [in_data.append(i) for i in in_features] 
 
-        in_data = np.array(in_data).reshape(1, -1)
+        # in_data = np.array(in_data).reshape(1, -1)
 
-        with open('model.pkl', 'rb') as f:
-            model = pickle.load(f)
+        # with open('model.pkl', 'rb') as f:
+        #     model = pickle.load(f)
 
-        prediction = model.predict(in_data)
+        # prediction = model.predict(in_data)
 
-        print(prediction)
+        # print(prediction)
 
 
         # Check if the IP is already present in the Redis cache
