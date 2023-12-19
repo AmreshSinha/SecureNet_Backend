@@ -159,7 +159,16 @@ async def upload_apk(file: UploadFile = File(...)):
 
         os.remove(temp_file_path)
 
-        return {"mobsf_static": response.json(), "file_md5": file_hash}
+        # Scan
+        response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
+                                 data={
+                                     "hash": file_hash
+                                 },
+                                 headers={
+                                     "Authorization": os.environ['MOBSF_API_KEY']}
+                                 )
+
+        return {"static": response.json(), "file_md5": file_hash}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -286,6 +295,7 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             print("IP Check: No Cache Found!")
             # Fetch the IP report from ipdata.co
             ip_report_data = ip_report(ip)
+
             # Store the IP report in the Redis cache
             add_ip_report(ip, port, package, json.dumps(ip_report_data))
             return ip_report_data
@@ -300,6 +310,7 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             print("Domain Check: No Cache Found!")
             # Fetch the domain report from ipdata.co
             domain_report_data = domain_report(domain)
+
             # Store the domain report in the Redis cache
             add_domain_report(domain, package, json.dumps(domain_report_data))
             return domain_report_data
