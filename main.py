@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Response, Request
+from gemini_utils import BASE_PROMPT_ACTION, BASE_PROMPT_SUMMARY, GEMINI_API_KEY
 from pydantic import BaseModel
 from typing import List
 import models
@@ -16,6 +17,8 @@ import json
 from redis_utils import check_ip_report, add_ip_report, check_domain_report, add_domain_report
 from spamhaus_utils import domain_report
 import urllib.parse
+import google.generativeai as genai
+import random
 
 load_dotenv()
 
@@ -173,6 +176,41 @@ async def upload_apk(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/gemini/action")
+async def gemini(hash: str):
+    response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
+                                 data={
+                                     "hash": hash
+                                 },
+                                 headers={
+                                     "Authorization": os.environ['MOBSF_API_KEY']}
+                                 )
+    action_prompt = BASE_PROMPT_ACTION + response.json
+    genai.configure(api_key=GEMINI_API_KEY)
+
+    model = genai.GenerativeModel('gemini-pro')
+
+    response = model.generate_content(action_prompt)
+
+    return response
+
+@app.get("/gemini/summary")
+async def gemini(hash: str):
+    response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
+                                 data={
+                                     "hash": hash
+                                 },
+                                 headers={
+                                     "Authorization": os.environ['MOBSF_API_KEY']}
+                                 )
+    summary_prompt = BASE_PROMPT_SUMMARY + response.json
+    genai.configure(api_key=GEMINI_API_KEY)
+
+    model = genai.GenerativeModel('gemini-pro')
+
+    response = model.generate_content(summary_prompt)
+
+    return response
 
 @app.get("/static/scorecard")
 async def scorecard(hash: str):
