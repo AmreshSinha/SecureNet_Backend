@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Response, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List
 import models
@@ -16,6 +17,7 @@ import json
 from redis_utils import check_ip_report, add_ip_report, check_domain_report, add_domain_report
 from spamhaus_utils import domain_report
 import urllib.parse
+from shared_utils import check_app_on_server
 
 load_dotenv()
 
@@ -146,7 +148,7 @@ async def upload_apk(file: UploadFile = File(...)):
         print(
             f"SHA256 Hash of the file {file.filename}: {file_hash}")
 
-        time.sleep(1)  # !TEST
+        # time.sleep(1)  # !TEST
 
         with open(temp_file_path, "rb") as f:
             multipart_data = MultipartEncoder(
@@ -229,7 +231,10 @@ async def report_json(hash: str):
             data={'hash': hash},
             headers={"Authorization": os.environ['MOBSF_API_KEY']}
         )
-        return response.json()
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return JSONResponse(status_code=404, content=response.json())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
