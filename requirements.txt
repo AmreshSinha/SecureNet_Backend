@@ -9,3 +9,5 @@ requests
 python-multipart
 requests-toolbelt
 redis
+google-generativeai
+markdown

@@ -272,7 +272,7 @@ async def send_notif(title: str, body: str):
     return response.json()
 
 
-@app.post("/ipdom")
+@app.post("/dynamic/ipdom")
 async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None):
     # type = "ip"
     if ip:
@@ -281,7 +281,7 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
         ip_report_redis = check_ip_report(ip)
         if ip_report_redis:
             print("IP Check: Cache Hit!")
-            return json.loads(ip_report_redis)
+            return json.dumps(ip_report_redis)
         else:
             print("IP Check: No Cache Found!")
             # Fetch the IP report from ipdata.co
