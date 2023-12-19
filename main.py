@@ -267,7 +267,7 @@ async def report_pdf(hash: str):
 
 
 @app.post("/fcm")
-async def report_pdf(request: Request):
+async def fcm_init(request: Request):
     data = await request.json()
     token = data.get("token")
     global fcmToken
@@ -296,7 +296,15 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
         ip_report_redis = check_ip_report(ip)
         if ip_report_redis:
             print("IP Check: Cache Hit!")
-            return json.loads(ip_report_redis)
+
+            response = json.loads(ip_report_redis)
+
+            # !Trigger Push Notification if malicious (IP)
+            report = response['report']
+            if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
+                send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
+
+            return response
         else:
             print("IP Check: No Cache Found!")
             # Fetch the IP report from ipdata.co
@@ -307,6 +315,12 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
                 "ip": ip,
                 "protocol": protocol
             }
+
+            # !Trigger Push Notification if malicious (IP)
+            report = ip_report_data['report']
+            if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
+                send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
+
             # Store the IP report in the Redis cache
             add_ip_report(ip, port, package, json.dumps(ip_report_data))
             return ip_report_data
@@ -316,7 +330,14 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
         domain_report_redis = check_domain_report(domain)
         if domain_report_redis:
             print("Domain Check: Cache Hit!")
-            return json.loads(domain_report_redis)
+
+            response = json.loads(domain_report_redis)
+            
+            # !Trigger Push Notification if malicious (Domain)
+            if response['score'] < 0:
+                send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
+
+            return response
         else:
             print("Domain Check: No Cache Found!")
             # Fetch the domain report from ipdata.co
@@ -326,6 +347,11 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
                 "domain": domain,
                 "protocol": protocol
             }
+
+            # !Trigger Push Notification if malicious (Domain)
+            if domain_report_data['score'] < 0:
+                send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
+
             # Store the domain report in the Redis cache
             add_domain_report(domain, package, json.dumps(domain_report_data))
             return domain_report_data
