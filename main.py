@@ -15,6 +15,7 @@ from ipdata_utils import ip_report
 import json
 from redis_utils import check_ip_report, add_ip_report, check_domain_report, add_domain_report
 from spamhaus_utils import domain_report
+import urllib.parse
 
 load_dotenv()
 
@@ -317,3 +318,13 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
     else:
         raise HTTPException(
             status_code=500, detail="Incorrect Parameters Provided")
+
+@app.post("/dynamic/url_report")
+async def url_report(package: str, url: str):
+    try:
+        response = requests.get(f"https://www.ipqualityscore.com/api/json/url/{os.environ['IPQUALITYSCORE_API_KEY']}/{urllib.parse.quote(url, safe='')}")
+        response = response.json()
+        response['package'] = package
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
