@@ -281,12 +281,42 @@ async def send_notif(title: str, body: str):
     )
     return response.json()
 
+import joblib
+import numpy as np
+import pickle
 
 @app.post("/dynamic/ipdom")
 async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None):
     # type = "ip"
     if ip:
-        # type = "ip"
+        source_ip = "192.168.100.103"
+
+        in_data = []
+
+        source_ip = source_ip.split('.')
+        source_ip = [in_data.append(float(i)) for i in source_ip]
+
+        in_data.append(float(port))
+
+        des_ip = ip.split('.')
+        des_ip = [in_data.append(float(i)) for i in des_ip]
+
+        in_data.append(float(port))
+
+        in_features = [0.000e+00, 0.000e+00, 3.000e+00, 1.800e+02, 0.000e+00, 0.000e+00, 1.000e+00, 1.000e+00]
+
+        [in_data.append(i) for i in in_features] 
+
+        in_data = np.array(in_data).reshape(1, -1)
+
+        with open('model.pkl', 'rb') as f:
+            model = pickle.load(f)
+
+        prediction = model.predict(in_data)
+
+        print(prediction)
+
+
         # Check if the IP is already present in the Redis cache
         ip_report_redis = check_ip_report(ip)
         if ip_report_redis:
