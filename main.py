@@ -18,6 +18,8 @@ from redis_utils import check_ip_report, add_ip_report, check_domain_report, add
 from spamhaus_utils import domain_report
 import urllib.parse
 from shared_utils import check_app_on_server
+import aiohttp
+import asyncio
 
 load_dotenv()
 
@@ -146,7 +148,7 @@ async def upload_apk(file: UploadFile = File(...)):
 
         file_hash = sha_hash.hexdigest()
         print(
-            f"SHA256 Hash of the file {file.filename}: {file_hash}")
+            f"MD5 Hash of the file {file.filename}: {file_hash}")
 
         # time.sleep(1)  # !TEST
 
@@ -162,14 +164,14 @@ async def upload_apk(file: UploadFile = File(...)):
 
         os.remove(temp_file_path)
 
-        # Scan
-        response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
-                                 data={
-                                     "hash": file_hash
-                                 },
-                                 headers={
-                                     "Authorization": os.environ['MOBSF_API_KEY']}
-                                 )
+        # Scan | Commented out for implementing Long Polling
+        # response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
+        #                          data={
+        #                              "hash": file_hash
+        #                          },
+        #                          headers={
+        #                              "Authorization": os.environ['MOBSF_API_KEY']}
+        #                          )
 
         return {"static": response.json(), "file_md5": file_hash}
     except Exception as e:
@@ -279,12 +281,21 @@ async def send_notif(title: str, body: str):
     global fcmToken
     if fcmToken == "":
         return {"message": "set FCM TOKEN first"}
-    response = requests.post(
-        "https://securenet-notif.onrender.com/notif",
-        json={'fcmToken': fcmToken, 'title': title, 'body': body},
-        headers={"Content-Type": "application/json"}
-    )
-    return response.json()
+    # response = requests.post(
+    #     "https://securenet-notif.onrender.com/notif",
+    #     json={'fcmToken': fcmToken, 'title': title, 'body': body},
+    #     headers={"Content-Type": "application/json"}
+    # )
+    # return response.json()
+
+    async with aiohttp.ClientSession() as session:
+        print("yoyoAsync")
+        async with session.post(
+            "https://securenet-notif.onrender.com/notif",
+            json={'fcmToken': fcmToken, 'title': title, 'body': body},
+            headers={"Content-Type": "application/json"}
+        ) as response:
+            return await response.json()
 
 
 @app.get("/dynamic/ipdom")
@@ -300,10 +311,12 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             response = json.loads(ip_report_redis)
 
             # !Trigger Push Notification if malicious (IP)
-            # report = response['report']
-            # if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
-            #     send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
+            report = response['report']
+            if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
+                send_notif(title="Malicious IP found",
+                           body=f"{ip} is malicious for {package}")
 
+            print("yoyo1")
             return response
         else:
             print("IP Check: No Cache Found!")
@@ -317,10 +330,10 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             }
 
             # !Trigger Push Notification if malicious (IP)
-            # report = ip_report_data['report']
-            # if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
-            #     send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
-
+            if ip_report_data['is_known_attacker'] and ip_report_data['is_known_abuser'] and ip_report_data['is_threat']:
+                asyncio.create_task(send_notif(title="Malicious IP found",
+                           body=f"{ip} is malicious for {package}"))
+            print("yoyo2")
             # Store the IP report in the Redis cache
             add_ip_report(ip, port, package, json.dumps(ip_report_data))
             return ip_report_data
@@ -332,7 +345,7 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             print("Domain Check: Cache Hit!")
 
             response = json.loads(domain_report_redis)
-            
+
             # !Trigger Push Notification if malicious (Domain)
             # if response['score'] < 0:
             #     send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
