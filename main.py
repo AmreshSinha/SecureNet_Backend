@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Response, Request
+from gemini_utils import BASE_PROMPT_ACTION, BASE_PROMPT_SUMMARY, GEMINI_API_KEY
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List
@@ -17,6 +18,8 @@ import json
 from redis_utils import check_ip_report, add_ip_report, check_domain_report, add_domain_report, add_ip_to_blacklist, add_domain_to_blacklist, get_blacklisted_ips, get_blacklisted_domains
 from spamhaus_utils import domain_report
 import urllib.parse
+import google.generativeai as genai
+import random
 from shared_utils import check_app_on_server
 from pydantic import BaseModel
 
@@ -176,6 +179,41 @@ async def upload_apk(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/gemini/action")
+async def gemini(hash: str):
+    response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
+                                 data={
+                                     "hash": hash
+                                 },
+                                 headers={
+                                     "Authorization": os.environ['MOBSF_API_KEY']}
+                                 )
+    action_prompt = BASE_PROMPT_ACTION + response.json
+    genai.configure(api_key=GEMINI_API_KEY)
+
+    model = genai.GenerativeModel('gemini-pro')
+
+    response = model.generate_content(action_prompt)
+
+    return response
+
+@app.get("/gemini/summary")
+async def gemini(hash: str):
+    response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
+                                 data={
+                                     "hash": hash
+                                 },
+                                 headers={
+                                     "Authorization": os.environ['MOBSF_API_KEY']}
+                                 )
+    summary_prompt = BASE_PROMPT_SUMMARY + response.json
+    genai.configure(api_key=GEMINI_API_KEY)
+
+    model = genai.GenerativeModel('gemini-pro')
+
+    response = model.generate_content(summary_prompt)
+
+    return response
 
 @app.get("/static/scorecard")
 async def scorecard(hash: str):
@@ -287,12 +325,42 @@ async def send_notif(title: str, body: str):
     )
     return response.json()
 
+import joblib
+import numpy as np
+import pickle
 
 @app.get("/dynamic/ipdom")
 async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None, protocol: int | None = None):
     # type = "ip"
     if ip:
-        # type = "ip"
+        source_ip = "192.168.100.103"
+
+        in_data = []
+
+        source_ip = source_ip.split('.')
+        source_ip = [in_data.append(float(i)) for i in source_ip]
+
+        in_data.append(float(port))
+
+        des_ip = ip.split('.')
+        des_ip = [in_data.append(float(i)) for i in des_ip]
+
+        in_data.append(float(port))
+
+        in_features = [0.000e+00, 0.000e+00, 3.000e+00, 1.800e+02, 0.000e+00, 0.000e+00, 1.000e+00, 1.000e+00]
+
+        [in_data.append(i) for i in in_features] 
+
+        in_data = np.array(in_data).reshape(1, -1)
+
+        with open('model.pkl', 'rb') as f:
+            model = pickle.load(f)
+
+        prediction = model.predict(in_data)
+
+        print(prediction)
+
+
         # Check if the IP is already present in the Redis cache
         ip_report_redis = check_ip_report(ip)
         if ip_report_redis:
