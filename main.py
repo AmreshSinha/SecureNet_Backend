@@ -146,7 +146,7 @@ async def upload_apk(file: UploadFile = File(...)):
         print(
             f"SHA256 Hash of the file {file.filename}: {file_hash}")
 
-        time.sleep(1)  # !TEST
+        # time.sleep(1)  # !TEST
 
         with open(temp_file_path, "rb") as f:
             multipart_data = MultipartEncoder(
