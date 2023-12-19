@@ -14,10 +14,11 @@ import time
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 from ipdata_utils import ip_report
 import json
-from redis_utils import check_ip_report, add_ip_report, check_domain_report, add_domain_report
+from redis_utils import check_ip_report, add_ip_report, check_domain_report, add_domain_report, add_ip_to_blacklist, add_domain_to_blacklist, get_blacklisted_ips, get_blacklisted_domains
 from spamhaus_utils import domain_report
 import urllib.parse
 from shared_utils import check_app_on_server
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -332,7 +333,7 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             print("Domain Check: Cache Hit!")
 
             response = json.loads(domain_report_redis)
-            
+
             # !Trigger Push Notification if malicious (Domain)
             # if response['score'] < 0:
             #     send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
@@ -368,5 +369,38 @@ async def url_report(package: str, url: str):
         response = response.json()
         response['package'] = package
         return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Blacklist POST & GET
+
+
+class BlacklistPOST(BaseModel):
+    ip: str | None = None,
+    domain: str | None = None,
+
+
+@app.post("/dynamic/blacklist")
+async def add_to_blacklist(q: BlacklistPOST):
+    try:
+        q = q.model_dump()
+        if q['ip'][0] == None:
+            q['ip'] = None
+        if q['domain'][0] == None:
+            q['domain'] = None
+
+        if q['ip'] != None:
+            add_ip_to_blacklist(q['ip'])
+        if q['domain'] != None:
+            add_domain_to_blacklist(q['domain'])
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/dynamic/blacklist")
+async def get_blacklist():
+    try:
+        return {"ips": get_blacklisted_ips(), "domains": get_blacklisted_domains()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
