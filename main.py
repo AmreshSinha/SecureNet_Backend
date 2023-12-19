@@ -281,13 +281,13 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
         ip_report_redis = check_ip_report(ip)
         if ip_report_redis:
             print("IP Check: Cache Hit!")
-            return json.dumps(ip_report_redis)
+            return json.loads(ip_report_redis)
         else:
             print("IP Check: No Cache Found!")
             # Fetch the IP report from ipdata.co
-            ip_report_data = json.dumps(ip_report(ip))
+            ip_report_data = ip_report(ip)
             # Store the IP report in the Redis cache
-            add_ip_report(ip, port, package, ip_report_data)
+            add_ip_report(ip, port, package, json.dumps(ip_report_data))
             return ip_report_data
     elif domain:
         # type = "domain"
