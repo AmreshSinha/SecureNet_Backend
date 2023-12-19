@@ -283,7 +283,7 @@ async def send_notif(title: str, body: str):
 
 
 @app.post("/dynamic/ipdom")
-async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None):
+async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None, protocol: int | None = None):
     # type = "ip"
     if ip:
         # type = "ip"
@@ -296,7 +296,12 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             print("IP Check: No Cache Found!")
             # Fetch the IP report from ipdata.co
             ip_report_data = ip_report(ip)
-
+            ip_report_data['request'] = {
+                "package": package,
+                "port": port,
+                "ip": ip,
+                "protocol": protocol
+            }
             # Store the IP report in the Redis cache
             add_ip_report(ip, port, package, json.dumps(ip_report_data))
             return ip_report_data
@@ -311,7 +316,11 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             print("Domain Check: No Cache Found!")
             # Fetch the domain report from ipdata.co
             domain_report_data = domain_report(domain)
-
+            domain_report_data['request'] = {
+                "package": package,
+                "domain": domain,
+                "protocol": protocol
+            }
             # Store the domain report in the Redis cache
             add_domain_report(domain, package, json.dumps(domain_report_data))
             return domain_report_data
@@ -319,10 +328,12 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
         raise HTTPException(
             status_code=500, detail="Incorrect Parameters Provided")
 
+
 @app.post("/dynamic/url_report")
 async def url_report(package: str, url: str):
     try:
-        response = requests.get(f"https://www.ipqualityscore.com/api/json/url/{os.environ['IPQUALITYSCORE_API_KEY']}/{urllib.parse.quote(url, safe='')}")
+        response = requests.get(
+            f"https://www.ipqualityscore.com/api/json/url/{os.environ['IPQUALITYSCORE_API_KEY']}/{urllib.parse.quote(url, safe='')}")
         response = response.json()
         response['package'] = package
         return response
