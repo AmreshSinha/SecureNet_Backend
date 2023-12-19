@@ -9,6 +9,7 @@ HOST = os.getenv("REDIS_HOST") if os.getenv("REDIS_HOST") else 'localhost'
 
 redis_client = redis.Redis(host=HOST, port='6379', db=0)
 auth_store = redis.Redis(host=HOST, port='6379', db=1)
+redis_client = redis.Redis(host=HOST, port='6379', db=2)
 
 
 def check_spamhaus_token() -> str:
@@ -55,3 +56,16 @@ def add_domain_report(domain: str, package_name: str, report: str):
     response = redis_client.set(key, json.dumps(json_report))
     redis_client.expire(key, 60 * 60 * 24 * 7)  # Expire after 7 days
     return response
+
+# Utils for Blacklists Sync (SETS)
+def add_ip_to_blacklist(ip: str):
+    redis_client.sadd("blacklist:ips", ip)
+
+def add_domain_to_blacklist(domain: str):
+    redis_client.sadd("blacklist:domains", domain)
+
+def get_blacklisted_ips():
+    return redis_client.smembers("blacklist:ips")
+
+def get_blacklisted_domains():
+    return redis_client.smembers("blacklist:domains")

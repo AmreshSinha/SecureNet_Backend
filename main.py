@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Response, Request
 from gemini_utils import BASE_PROMPT_ACTION, BASE_PROMPT_SUMMARY, GEMINI_API_KEY
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List
 import models
@@ -14,11 +15,13 @@ import time
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 from ipdata_utils import ip_report
 import json
-from redis_utils import check_ip_report, add_ip_report, check_domain_report, add_domain_report
+from redis_utils import check_ip_report, add_ip_report, check_domain_report, add_domain_report, add_ip_to_blacklist, add_domain_to_blacklist, get_blacklisted_ips, get_blacklisted_domains
 from spamhaus_utils import domain_report
 import urllib.parse
 import google.generativeai as genai
 import random
+from shared_utils import check_app_on_server
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -149,7 +152,7 @@ async def upload_apk(file: UploadFile = File(...)):
         print(
             f"SHA256 Hash of the file {file.filename}: {file_hash}")
 
-        time.sleep(1)  # !TEST
+        # time.sleep(1)  # !TEST
 
         with open(temp_file_path, "rb") as f:
             multipart_data = MultipartEncoder(
@@ -267,7 +270,10 @@ async def report_json(hash: str):
             data={'hash': hash},
             headers={"Authorization": os.environ['MOBSF_API_KEY']}
         )
-        return response.json()
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return JSONResponse(status_code=404, content=response.json())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -300,7 +306,7 @@ async def report_pdf(hash: str):
 
 
 @app.post("/fcm")
-async def report_pdf(request: Request):
+async def fcm_init(request: Request):
     data = await request.json()
     token = data.get("token")
     global fcmToken
@@ -323,8 +329,8 @@ import joblib
 import numpy as np
 import pickle
 
-@app.post("/dynamic/ipdom")
-async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None):
+@app.get("/dynamic/ipdom")
+async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None, protocol: int | None = None):
     # type = "ip"
     if ip:
         source_ip = "192.168.100.103"
@@ -359,11 +365,30 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
         ip_report_redis = check_ip_report(ip)
         if ip_report_redis:
             print("IP Check: Cache Hit!")
-            return json.loads(ip_report_redis)
+
+            response = json.loads(ip_report_redis)
+
+            # !Trigger Push Notification if malicious (IP)
+            # report = response['report']
+            # if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
+            #     send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
+
+            return response
         else:
             print("IP Check: No Cache Found!")
             # Fetch the IP report from ipdata.co
             ip_report_data = ip_report(ip)
+            ip_report_data['request'] = {
+                "package": package,
+                "port": port,
+                "ip": ip,
+                "protocol": protocol
+            }
+
+            # !Trigger Push Notification if malicious (IP)
+            # report = ip_report_data['report']
+            # if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
+            #     send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
 
             # Store the IP report in the Redis cache
             add_ip_report(ip, port, package, json.dumps(ip_report_data))
@@ -374,11 +399,27 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
         domain_report_redis = check_domain_report(domain)
         if domain_report_redis:
             print("Domain Check: Cache Hit!")
-            return json.loads(domain_report_redis)
+
+            response = json.loads(domain_report_redis)
+
+            # !Trigger Push Notification if malicious (Domain)
+            # if response['score'] < 0:
+            #     send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
+
+            return response
         else:
             print("Domain Check: No Cache Found!")
             # Fetch the domain report from ipdata.co
             domain_report_data = domain_report(domain)
+            domain_report_data['request'] = {
+                "package": package,
+                "domain": domain,
+                "protocol": protocol
+            }
+
+            # !Trigger Push Notification if malicious (Domain)
+            # if domain_report_data['score'] < 0:
+            #     send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
 
             # Store the domain report in the Redis cache
             add_domain_report(domain, package, json.dumps(domain_report_data))
@@ -387,12 +428,47 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
         raise HTTPException(
             status_code=500, detail="Incorrect Parameters Provided")
 
+
 @app.post("/dynamic/url_report")
 async def url_report(package: str, url: str):
     try:
-        response = requests.get(f"https://www.ipqualityscore.com/api/json/url/{os.environ['IPQUALITYSCORE_API_KEY']}/{urllib.parse.quote(url, safe='')}")
+        response = requests.get(
+            f"https://www.ipqualityscore.com/api/json/url/{os.environ['IPQUALITYSCORE_API_KEY']}/{urllib.parse.quote(url, safe='')}")
         response = response.json()
         response['package'] = package
         return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Blacklist POST & GET
+
+
+class BlacklistPOST(BaseModel):
+    ip: str | None = None,
+    domain: str | None = None,
+
+
+@app.post("/dynamic/blacklist")
+async def add_to_blacklist(q: BlacklistPOST):
+    try:
+        q = q.model_dump()
+        if q['ip'][0] == None:
+            q['ip'] = None
+        if q['domain'][0] == None:
+            q['domain'] = None
+
+        if q['ip'] != None:
+            add_ip_to_blacklist(q['ip'])
+        if q['domain'] != None:
+            add_domain_to_blacklist(q['domain'])
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/dynamic/blacklist")
+async def get_blacklist():
+    try:
+        return {"ips": get_blacklisted_ips(), "domains": get_blacklisted_domains()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
