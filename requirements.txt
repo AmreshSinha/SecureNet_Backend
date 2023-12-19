@@ -11,3 +11,4 @@ requests-toolbelt
 redis
 google-generativeai
 markdown
+numpy

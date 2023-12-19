@@ -281,7 +281,6 @@ async def send_notif(title: str, body: str):
     )
     return response.json()
 
-import joblib
 import numpy as np
 import pickle
 
