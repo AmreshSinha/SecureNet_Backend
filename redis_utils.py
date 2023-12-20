@@ -32,12 +32,8 @@ def check_ip_report(ip: str):
 
 def add_ip_report(ip: str, port: int, package_name: str, report: str):
     key = f"{ip}"
-    json_report = {
-        "port": port,
-        "package_name": package_name,
-        "report": json.loads(report)
-    }
-    response = redis_client.set(key, json.dumps(json_report))
+    json_report = report
+    response = redis_client.set(key, json_report)
     redis_client.expire(key, 60 * 60 * 24 * 7)  # Expire after 7 days
     return response
 
