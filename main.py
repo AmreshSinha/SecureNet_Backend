@@ -23,8 +23,8 @@ import random
 from shared_utils import check_app_on_server
 from pydantic import BaseModel
 # TODO: Implement async calls for notifs
-# import aiohttp
-# import asyncio
+import aiohttp
+import asyncio
 
 load_dotenv()
 
@@ -182,16 +182,17 @@ async def upload_apk(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/gemini/action")
 async def gemini(hash: str):
     response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/report_json",
-                                 data={
-                                     "hash": hash
-                                 },
-                                 headers={
-                                     "Authorization": os.environ['MOBSF_API_KEY']}
-                                 )
-    
+                             data={
+                                 "hash": hash
+                             },
+                             headers={
+                                 "Authorization": os.environ['MOBSF_API_KEY']}
+                             )
+
     # !DEBUG LINE
     # print(response.text)
 
@@ -213,7 +214,7 @@ async def gemini(hash: str):
     response.pop('files', None)
     response.pop('exported_count', None)
     response.pop('secrets', None)
-    
+
     action_prompt = BASE_PROMPT_ACTION + json.dumps(response)
 
     # !DEBUG LINE
@@ -227,16 +228,17 @@ async def gemini(hash: str):
 
     return response.text
 
+
 @app.get("/gemini/summary")
 async def gemini(hash: str):
     response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/report_json",
-                                 data={
-                                     "hash": hash
-                                 },
-                                 headers={
-                                     "Authorization": os.environ['MOBSF_API_KEY']}
-                                 )
-    
+                             data={
+                                 "hash": hash
+                             },
+                             headers={
+                                 "Authorization": os.environ['MOBSF_API_KEY']}
+                             )
+
     # Remove garbage value
     response = response.json()
     response.pop('md5', None)
@@ -255,7 +257,7 @@ async def gemini(hash: str):
     response.pop('files', None)
     response.pop('exported_count', None)
     response.pop('secrets', None)
-    
+
     action_prompt = BASE_PROMPT_SUMMARY + json.dumps(response)
     genai.configure(api_key=GEMINI_API_KEY)
 
@@ -264,6 +266,7 @@ async def gemini(hash: str):
     response = model.generate_content(action_prompt)
 
     return response.text
+
 
 @app.get("/static/scorecard")
 async def scorecard(hash: str):
@@ -361,7 +364,7 @@ async def fcm_init(request: Request):
     token = data.get("token")
     global fcmToken
     fcmToken = token
-    print("fcmToken:", fcmToken) # !DEBUG
+    print("fcmToken:", fcmToken)  # !DEBUG
     return {"success": True, "fcmToken": token}
 
 
@@ -369,15 +372,30 @@ async def send_notif(title: str, body: str):
     global fcmToken
     if fcmToken == "":
         return {"message": "set FCM TOKEN first"}
-    response = requests.post(
-        "https://securenet-notif.onrender.com/notif",
-        json={'fcmToken': fcmToken, 'title': title, 'body': body},
-        headers={"Content-Type": "application/json"}
-    )
-    return response.json()
+    # response = requests.post(
+    #     "https://securenet-notif.onrender.com/notif",
+    #     json={'fcmToken': fcmToken, 'title': title, 'body': body},
+    #     headers={"Content-Type": "application/json"}
+    # )
+    # return response.json()
+    async with aiohttp.ClientSession() as session:
+        print("Sending notif...")
+        async with session.post(
+            "https://securenet-notif.onrender.com/notif",
+            json={'fcmToken': fcmToken, 'title': title, 'body': body},
+            headers={"Content-Type": "application/json"}
+        ) as response:
+            return await response.json()
+
+
+@app.get("/tests/notif")
+async def test_notif():
+    asyncio.create_task(send_notif(title="Malicious IP found!", body="com.android.chrome"))
+    return {"success": True}
 
 # import numpy as np
 # import pickle
+
 
 @app.get("/dynamic/ipdom")
 async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None, protocol: int | None = None):
@@ -399,7 +417,7 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
 
         # in_features = [0.000e+00, 0.000e+00, 3.000e+00, 1.800e+02, 0.000e+00, 0.000e+00, 1.000e+00, 1.000e+00]
 
-        # [in_data.append(i) for i in in_features] 
+        # [in_data.append(i) for i in in_features]
 
         # in_data = np.array(in_data).reshape(1, -1)
 
@@ -423,7 +441,8 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             # !Trigger Push Notification if malicious (IP)
             report = response
             if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
-                send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
+                asyncio.create_task(send_notif(title="Malicious IP found",
+                                               body=f"{ip} is malicious for {package}"))
                 # TODO: ^^ Needs asyncio to be implemented
 
             return response
@@ -441,7 +460,8 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             # !Trigger Push Notification if malicious (IP)
             report = ip_report_data
             if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
-                send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
+                asyncio.create_task(send_notif(title="Malicious IP found",
+                                               body=f"{ip} is malicious for {package}"))
                 # TODO: ^^ Needs asyncio to be implemented
 
             # Store the IP report in the Redis cache
@@ -458,7 +478,8 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
 
             # !Trigger Push Notification if malicious (Domain)
             if response['score'] < 0:
-                send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
+                asyncio.create_task(send_notif(title="Malicious Domain found",
+                                               body=f"{domain} is malicious for {package}"))
                 # TODO: ^^ Needs asyncio to be implemented
 
             return response
@@ -474,10 +495,10 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
 
             # !Trigger Push Notification if malicious (Domain)
             if domain_report_data['score'] < 0:
-                send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
+                asyncio.create_task(send_notif(title="Malicious Domain found",
+                                               body=f"{domain} is malicious for {package}"))
                 # TODO: ^^ Needs asyncio to be implemented
 
- 
             # Store the domain report in the Redis cache
             add_domain_report(domain, package, json.dumps(domain_report_data))
             return domain_report_data
