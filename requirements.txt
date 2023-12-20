@@ -13,3 +13,4 @@ google-generativeai
 markdown
 numpy
 tldextract
+aiohttp
