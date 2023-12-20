@@ -421,7 +421,7 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             response = json.loads(ip_report_redis)
 
             # !Trigger Push Notification if malicious (IP)
-            report = response['report']
+            report = response
             if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
                 send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
                 # TODO: ^^ Needs asyncio to be implemented
@@ -439,7 +439,7 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             }
 
             # !Trigger Push Notification if malicious (IP)
-            report = ip_report_data['report']
+            report = ip_report_data
             if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
                 send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
                 # TODO: ^^ Needs asyncio to be implemented
