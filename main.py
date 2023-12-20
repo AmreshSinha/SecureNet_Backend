@@ -184,7 +184,7 @@ async def upload_apk(file: UploadFile = File(...)):
 
 @app.get("/gemini/action")
 async def gemini(hash: str):
-    response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
+    response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/report_json",
                                  data={
                                      "hash": hash
                                  },
@@ -192,7 +192,33 @@ async def gemini(hash: str):
                                      "Authorization": os.environ['MOBSF_API_KEY']}
                                  )
     
-    action_prompt = BASE_PROMPT_ACTION + response.text
+    # !DEBUG LINE
+    # print(response.text)
+
+    # Remove garbage value
+    response = response.json()
+    response.pop('md5', None)
+    response.pop('sha1', None)
+    response.pop('sha256', None)
+    response.pop('browsable_activities', None)
+    response.pop('receivers', None)
+    response.pop('icon_path', None)
+    response.pop('certificate_analysis', None)
+    response.pop('binary_analysis', None)
+    response.pop('urls', None)
+    response.pop('domains', None)
+    response.pop('emails', None)
+    response.pop('strings', None)
+    response.pop('firebase_urls', None)
+    response.pop('files', None)
+    response.pop('exported_count', None)
+    response.pop('secrets', None)
+    
+    action_prompt = BASE_PROMPT_ACTION + json.dumps(response)
+
+    # !DEBUG LINE
+    # print(action_prompt)
+
     genai.configure(api_key=GEMINI_API_KEY)
 
     model = genai.GenerativeModel('gemini-pro')
@@ -203,7 +229,7 @@ async def gemini(hash: str):
 
 @app.get("/gemini/summary")
 async def gemini(hash: str):
-    response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/scan",
+    response = requests.post(f"{os.environ['MOBSF_ENDPOINT']}/api/v1/report_json",
                                  data={
                                      "hash": hash
                                  },
@@ -211,7 +237,26 @@ async def gemini(hash: str):
                                      "Authorization": os.environ['MOBSF_API_KEY']}
                                  )
     
-    action_prompt = BASE_PROMPT_SUMMARY + response.text
+    # Remove garbage value
+    response = response.json()
+    response.pop('md5', None)
+    response.pop('sha1', None)
+    response.pop('sha256', None)
+    response.pop('browsable_activities', None)
+    response.pop('receivers', None)
+    response.pop('icon_path', None)
+    response.pop('certificate_analysis', None)
+    response.pop('binary_analysis', None)
+    response.pop('urls', None)
+    response.pop('domains', None)
+    response.pop('emails', None)
+    response.pop('strings', None)
+    response.pop('firebase_urls', None)
+    response.pop('files', None)
+    response.pop('exported_count', None)
+    response.pop('secrets', None)
+    
+    action_prompt = BASE_PROMPT_SUMMARY + json.dumps(response)
     genai.configure(api_key=GEMINI_API_KEY)
 
     model = genai.GenerativeModel('gemini-pro')
