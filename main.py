@@ -22,6 +22,9 @@ import google.generativeai as genai
 import random
 from shared_utils import check_app_on_server
 from pydantic import BaseModel
+# TODO: Implement async calls for notifs
+# import aiohttp
+# import asyncio
 
 load_dotenv()
 
