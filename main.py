@@ -372,9 +372,9 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             response = json.loads(ip_report_redis)
 
             # !Trigger Push Notification if malicious (IP)
-            # report = response['report']
-            # if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
-            #     send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
+            report = response['report']
+            if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
+                send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
 
             return response
         else:
@@ -389,9 +389,9 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             }
 
             # !Trigger Push Notification if malicious (IP)
-            # report = ip_report_data['report']
-            # if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
-            #     send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
+            report = ip_report_data['report']
+            if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
+                send_notif(title="Malicious IP found", body=f"{ip} is malicious for {package}")
 
             # Store the IP report in the Redis cache
             add_ip_report(ip, port, package, json.dumps(ip_report_data))
@@ -406,8 +406,8 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             response = json.loads(domain_report_redis)
 
             # !Trigger Push Notification if malicious (Domain)
-            # if response['score'] < 0:
-            #     send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
+            if response['score'] < 0:
+                send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
 
             return response
         else:
@@ -421,8 +421,8 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             }
 
             # !Trigger Push Notification if malicious (Domain)
-            # if domain_report_data['score'] < 0:
-            #     send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
+            if domain_report_data['score'] < 0:
+                send_notif(title="Malicious Domain found", body=f"{domain} is malicious for {package}")
 
             # Store the domain report in the Redis cache
             add_domain_report(domain, package, json.dumps(domain_report_data))
