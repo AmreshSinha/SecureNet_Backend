@@ -313,7 +313,7 @@ async def fcm_init(request: Request):
     token = data.get("token")
     global fcmToken
     fcmToken = token
-    print(fcmToken) # !DEBUG
+    print("fcmToken:", fcmToken) # !DEBUG
     return {"success": True, "fcmToken": token}
 
 
