@@ -327,42 +327,42 @@ async def send_notif(title: str, body: str):
     )
     return response.json()
 
-import numpy as np
-import pickle
+# import numpy as np
+# import pickle
 
 @app.get("/dynamic/ipdom")
 async def ip_or_domain_report(package: str, port: int | None = None, ip: str | None = None, domain: str | None = None, protocol: int | None = None):
     # type = "ip"
     if ip:
-        source_ip = "192.168.100.103"
+        # source_ip = "192.168.100.103"
 
-        in_data = []
+        # in_data = []
 
-        source_ip = source_ip.split('.')
-        source_ip = [in_data.append(float(i)) for i in source_ip]
+        # source_ip = source_ip.split('.')
+        # source_ip = [in_data.append(float(i)) for i in source_ip]
 
-        in_data.append(float(port))
+        # in_data.append(float(port))
 
-        des_ip = ip.split('.')
-        des_ip = [in_data.append(float(i)) for i in des_ip]
+        # des_ip = ip.split('.')
+        # des_ip = [in_data.append(float(i)) for i in des_ip]
 
-        in_data.append(float(port))
+        # in_data.append(float(port))
 
-        in_features = [0.000e+00, 0.000e+00, 3.000e+00, 1.800e+02, 0.000e+00, 0.000e+00, 1.000e+00, 1.000e+00]
+        # in_features = [0.000e+00, 0.000e+00, 3.000e+00, 1.800e+02, 0.000e+00, 0.000e+00, 1.000e+00, 1.000e+00]
 
-        [in_data.append(i) for i in in_features] 
+        # [in_data.append(i) for i in in_features] 
 
-        in_data = np.array(in_data).reshape(1, -1)
+        # in_data = np.array(in_data).reshape(1, -1)
 
-        with open('model.pkl', 'rb') as f:
-            model = pickle.load(f)
+        # with open('model.pkl', 'rb') as f:
+        #     model = pickle.load(f)
 
-        try:
-            prediction = model.predict(in_data)
-            print(prediction)
+        # try:
+        #     prediction = model.predict(in_data)
+        #     print(prediction)
 
-        except Exception:
-            print("Could not predict")
+        # except Exception:
+        #     print("Could not predict")
 
         # Check if the IP is already present in the Redis cache
         ip_report_redis = check_ip_report(ip)
