@@ -377,6 +377,7 @@ async def fcm_init(request: Request):
 async def send_notif(title: str, body: str):
     global fcmToken
     if fcmToken == "":
+        print("FCM token not set")
         return {"message": "set FCM TOKEN first"}
     # response = requests.post(
     #     "https://securenet-notif.onrender.com/notif",
