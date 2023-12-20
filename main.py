@@ -313,7 +313,8 @@ async def fcm_init(request: Request):
     token = data.get("token")
     global fcmToken
     fcmToken = token
-    return {"success": True, "token": token}
+    print(fcmToken) # !DEBUG
+    return {"success": True, "fcmToken": token}
 
 
 async def send_notif(title: str, body: str):
