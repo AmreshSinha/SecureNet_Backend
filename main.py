@@ -445,11 +445,14 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             response = json.loads(ip_report_redis)
 
             # !Trigger Push Notification if malicious (IP)
-            report = response
-            if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
-                asyncio.create_task(send_notif(title="Malicious IP found",
-                                               body=f"{ip} is malicious for {package}"))
-                # TODO: ^^ Needs asyncio to be implemented
+            try:
+                report = response
+                if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
+                    asyncio.create_task(send_notif(title="Malicious IP found",
+                                                body=f"{ip} is malicious for {package}"))
+                    # TODO: ^^ Needs asyncio to be implemented
+            except:
+                pass
 
             return response
         else:
@@ -464,11 +467,14 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             }
 
             # !Trigger Push Notification if malicious (IP)
-            report = ip_report_data
-            if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
-                asyncio.create_task(send_notif(title="Malicious IP found",
-                                               body=f"{ip} is malicious for {package}"))
-                # TODO: ^^ Needs asyncio to be implemented
+            try:
+                report = ip_report_data
+                if report['is_known_attacker'] and report['is_known_abuser'] and report['is_threat']:
+                    asyncio.create_task(send_notif(title="Malicious IP found",
+                                                body=f"{ip} is malicious for {package}"))
+                    # TODO: ^^ Needs asyncio to be implemented
+            except:
+                pass
 
             # Store the IP report in the Redis cache
             add_ip_report(ip, port, package, json.dumps(ip_report_data))
@@ -483,10 +489,13 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             response = json.loads(domain_report_redis)
 
             # !Trigger Push Notification if malicious (Domain)
-            if response['score'] < 0:
-                asyncio.create_task(send_notif(title="Malicious Domain found",
-                                               body=f"{domain} is malicious for {package}"))
-                # TODO: ^^ Needs asyncio to be implemented
+            try:
+                if response['score'] < 0:
+                    asyncio.create_task(send_notif(title="Malicious Domain found",
+                                                body=f"{domain} is malicious for {package}"))
+                    # TODO: ^^ Needs asyncio to be implemented
+            except:
+                pass
 
             return response
         else:
@@ -500,10 +509,13 @@ async def ip_or_domain_report(package: str, port: int | None = None, ip: str | N
             }
 
             # !Trigger Push Notification if malicious (Domain)
-            if domain_report_data['score'] < 0:
-                asyncio.create_task(send_notif(title="Malicious Domain found",
-                                               body=f"{domain} is malicious for {package}"))
-                # TODO: ^^ Needs asyncio to be implemented
+            try:
+                if domain_report_data['score'] < 0:
+                    asyncio.create_task(send_notif(title="Malicious Domain found",
+                                                body=f"{domain} is malicious for {package}"))
+                    # TODO: ^^ Needs asyncio to be implemented
+            except:
+                pass
 
             # Store the domain report in the Redis cache
             add_domain_report(domain, package, json.dumps(domain_report_data))
